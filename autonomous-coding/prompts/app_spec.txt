@@ -1,681 +1,956 @@
 <project_specification>
-  <project_name>Claude.ai Clone - AI Chat Interface</project_name>
+  <project_name>Meeting Minutes and Action Items Extractor</project_name>
 
   <overview>
-    Build a fully functional clone of claude.ai, Anthropic's conversational AI interface. The application should
-    provide a clean, modern chat interface for interacting with Claude via the API, including features like
-    conversation management, artifact rendering, project organization, multiple model selection, and advanced
-    settings. The UI should closely match claude.ai's design using Tailwind CSS with a focus on excellent
-    user experience and responsive design.
+    Build a CLI tool that automatically extracts structured information from meeting transcripts and notes.
+    The system will process text files (PDF, MD, TXT) and extract decisions made, action items with owners,
+    risks identified, and next steps. Using Anthropic Claude's structured extraction capabilities, the tool
+    will generate organized markdown reports with confidence scoring for testing purposes. The tool supports
+    batch processing of multiple meeting files and provides user review before finalizing outputs.
   </overview>
 
   <technology_stack>
-    <api_key>
-        You can use an API key located at /tmp/api-key for testing. You will not be allowed to read this file, but you can reference it in code.
-    </api_key>
-    <frontend>
-      <framework>React with Vite</framework>
-      <styling>Tailwind CSS (via CDN)</styling>
-      <state_management>React hooks and context</state_management>
-      <routing>React Router for navigation</routing>
-      <markdown>React Markdown for message rendering</markdown>
-      <code_highlighting>Syntax highlighting for code blocks</code_highlighting>
-      <port>Only launch on port {frontend_port}</port>
-    </frontend>
-    <backend>
-      <runtime>Node.js with Express</runtime>
-      <database>SQLite with better-sqlite3</database>
-      <api_integration>Claude API for chat completions</api_integration>
-      <streaming>Server-Sent Events for streaming responses</streaming>
-    </backend>
-    <communication>
-      <api>RESTful endpoints</api>
-      <streaming>SSE for real-time message streaming</streaming>
-      <claude_api>Integration with Claude API using Anthropic SDK</claude_api>
-    </communication>
+    <core_technologies>
+      <python>Python 3.12+</python>
+      <package_manager>uv for all package management</package_manager>
+      <llm_provider>Anthropic Claude (claude-sonnet-4-5 or claude-opus-4-5)</llm_provider>
+      <extraction_method>Structured extraction with JSON schema</extraction_method>
+    </core_technologies>
+
+    <file_processing>
+      <supported_formats>
+        - PDF (.pdf) - Text extraction from PDF documents
+        - Markdown (.md) - Direct text parsing
+        - Plain Text (.txt) - Direct text parsing
+      </supported_formats>
+      <max_file_size>5MB per file</max_file_size>
+      <language_support>English only</language_support>
+      <excluded_formats>Audio/video files not supported</excluded_formats>
+    </file_processing>
+
+    <output_specifications>
+      <format>Structured markdown (.md)</format>
+      <storage>File-based only (no database)</storage>
+      <location>Configurable output directory (XDG compliant)</location>
+      <naming_convention>{meeting_title}_{date}_minutes.md</naming_convention>
+    </output_specifications>
+
+    <development_tools>
+      <linting>ruff for linting and formatting</linting>
+      <type_checking>mypy in strict mode</type_checking>
+      <logging>structlog for structured logging</logging>
+      <data_validation>pydantic for dataclasses and validation</data_validation>
+      <testing>pytest with 95% minimum coverage</testing>
+    </development_tools>
+
+    <to_be_determined>
+      <pdf_parsing_library>pypdf, pdfplumber, or pymupdf to be selected during implementation</pdf_parsing_library>
+      <cli_framework>click, typer, or argparse to be selected during implementation</cli_framework>
+      <progress_display>rich or tqdm for progress bars</progress_display>
+    </to_be_determined>
   </technology_stack>
 
   <prerequisites>
     <environment_setup>
-      - Repository includes .env with VITE_ANTHROPIC_API_KEY configured
-      - Frontend dependencies pre-installed via pnpm
-      - Backend code goes in /server directory
-      - Install backend dependencies as needed
+      - Python 3.12+ installed
+      - uv package manager configured
+      - Anthropic API key with Claude access
+      - Sufficient API credits for processing
+      - Write permissions for output directory
     </environment_setup>
+
+    <project_structure>
+      - Follows src/ layout pattern (mandatory)
+      - Functional Core / Imperative Shell architecture
+      - XDG Base Directory standards for file locations
+      - Comprehensive .gitignore for standard file types
+    </project_structure>
   </prerequisites>
 
   <core_features>
-    <chat_interface>
-      - Clean, centered chat layout with message bubbles
-      - Streaming message responses with typing indicator
-      - Markdown rendering with proper formatting
-      - Code blocks with syntax highlighting and copy button
-      - LaTeX/math equation rendering
-      - Image upload and display in messages
-      - Multi-turn conversations with context
-      - Message editing and regeneration
-      - Stop generation button during streaming
-      - Input field with auto-resize textarea
-      - Character count and token estimation
-      - Keyboard shortcuts (Enter to send, Shift+Enter for newline)
-    </chat_interface>
+    <input_processing>
+      - File type detection and validation
+      - File size validation (max 5MB)
+      - Text extraction from PDF files
+      - Direct reading of MD/TXT files
+      - UTF-8 encoding handling
+      - Language detection (English validation)
+      - Batch file processing support
+      - Input file queuing and ordering
+    </input_processing>
 
-    <artifacts>
-      - Artifact detection and rendering in side panel
-      - Code artifact viewer with syntax highlighting
-      - HTML/SVG preview with live rendering
-      - React component preview
-      - Mermaid diagram rendering
-      - Text document artifacts
-      - Artifact editing and re-prompting
-      - Full-screen artifact view
-      - Download artifact content
-      - Artifact versioning and history
-    </artifacts>
+    <meeting_metadata_extraction>
+      - Meeting title identification
+      - Meeting date extraction
+      - Participant list extraction
+      - Meeting duration extraction
+      - Automatic date format normalization
+      - Fallback for missing metadata
+    </meeting_metadata_extraction>
 
-    <conversation_management>
-      - Create new conversations
-      - Conversation list in sidebar
-      - Rename conversations
-      - Delete conversations
-      - Search conversations by title/content
-      - Pin important conversations
-      - Archive conversations
-      - Conversation folders/organization
-      - Duplicate conversation
-      - Export conversation (JSON, Markdown, PDF)
-      - Conversation timestamps (created, last updated)
-      - Unread message indicators
-    </conversation_management>
+    <content_extraction>
+      <decisions>
+        - Identify all decisions made during meeting
+        - Extract decision context and rationale
+        - Assign confidence score (0.0-1.0)
+        - Link to relevant meeting sections
+      </decisions>
 
-    <projects>
-      - Create projects to group related conversations
-      - Project knowledge base (upload documents)
-      - Project-specific custom instructions
-      - Share projects with team (mock feature)
-      - Project settings and configuration
-      - Move conversations between projects
-      - Project templates
-      - Project analytics (usage stats)
-    </projects>
+      <action_items>
+        - Extract actionable tasks
+        - Identify task owners/assignees
+        - Extract deadlines and due dates
+        - Rank by urgency (High/Medium/Low)
+        - Assign confidence score (0.0-1.0)
+        - Capture dependencies between actions
+      </action_items>
 
-    <model_selection>
-      - Model selector dropdown with the following models:
-        - Claude Sonnet 4.5 (claude-sonnet-4-5-20250929) - default
-        - Claude Haiku 4.5 (claude-haiku-4-5-20251001)
-        - Claude Opus 4.1 (claude-opus-4-1-20250805)
-      - Model capabilities display
-      - Context window indicator
-      - Model-specific pricing info (display only)
-      - Switch models mid-conversation
-      - Model comparison view
-    </model_selection>
+      <risks>
+        - Identify risks and concerns raised
+        - Extract risk severity/impact
+        - Capture mitigation strategies mentioned
+        - Assign confidence score (0.0-1.0)
+      </risks>
 
-    <custom_instructions>
-      - Global custom instructions
-      - Project-specific custom instructions
-      - Conversation-specific system prompts
-      - Custom instruction templates
-      - Preview how instructions affect responses
-    </custom_instructions>
+      <next_steps>
+        - Extract planned next actions
+        - Identify responsible parties
+        - Extract timeline information
+        - Assign confidence score (0.0-1.0)
+      </next_steps>
+    </content_extraction>
 
-    <settings_preferences>
-      - Theme selection (Light, Dark, Auto)
-      - Font size adjustment
-      - Message density (compact, comfortable, spacious)
-      - Code theme selection
-      - Language preferences
-      - Accessibility options
-      - Keyboard shortcuts reference
-      - Data export options
-      - Privacy settings
-      - API key management
-    </settings_preferences>
+    <urgency_ranking>
+      - Automatic urgency classification for action items
+      - Criteria: deadline proximity, explicit priority keywords, context analysis
+      - Three-tier system: High, Medium, Low
+      - Configurable urgency keywords (urgent, ASAP, critical, etc.)
+      - Deadline-based ranking (items with closer deadlines rank higher)
+    </urgency_ranking>
 
-    <advanced_features>
-      - Temperature control slider
-      - Max tokens adjustment
-      - Top-p (nucleus sampling) control
-      - System prompt override
-      - Thinking/reasoning mode toggle
-      - Multi-modal input (text + images)
-      - Voice input (optional, mock UI)
-      - Response suggestions
-      - Related prompts
-      - Conversation branching
-    </advanced_features>
+    <confidence_scoring>
+      - Per-item confidence scores (0.0-1.0 scale)
+      - Included in output for testing/validation
+      - Low confidence items flagged for review
+      - Confidence threshold configurable (default: 0.7)
+      - Overall extraction quality score
+    </confidence_scoring>
 
-    <collaboration>
-      - Share conversation via link (read-only)
-      - Export conversation formats
-      - Conversation templates
-      - Prompt library
-      - Share artifacts
-      - Team workspaces (mock UI)
-    </collaboration>
+    <ambiguity_handling>
+      - First attempt: Detect ambiguous/incomplete content
+      - Return error with specific issues identified
+      - User can retry with --force flag
+      - Forced retry: Extract best possible information
+      - Mark low-confidence items clearly
+      - Suggest manual review sections
+    </ambiguity_handling>
 
-    <search_discovery>
-      - Search across all conversations
-      - Filter by project, date, model
-      - Prompt library with categories
-      - Example conversations
-      - Quick actions menu
-      - Command palette (Cmd/Ctrl+K)
-    </search_discovery>
+    <user_review_workflow>
+      - Display extracted content in terminal (formatted)
+      - Show confidence scores per section
+      - Highlight low-confidence items
+      - Prompt for user confirmation (Y/n)
+      - Allow editing before saving (optional)
+      - Option to skip review with --no-review flag
+      - Save only after approval
+    </user_review_workflow>
 
-    <usage_tracking>
-      - Token usage display per message
-      - Conversation cost estimation
-      - Daily/monthly usage dashboard
-      - Usage limits and warnings
-      - API quota tracking
-    </usage_tracking>
+    <batch_processing>
+      - Process multiple files in single command
+      - Sequential processing with progress tracking
+      - Continue on error (with logging)
+      - Summary report after batch completion
+      - Failed files logged for retry
+      - Parallel processing option (optional)
+    </batch_processing>
 
-    <onboarding>
-      - Welcome screen for new users
-      - Feature tour highlights
-      - Example prompts to get started
-      - Quick tips and best practices
-      - Keyboard shortcuts tutorial
-    </onboarding>
+    <output_generation>
+      - Generate structured markdown report
+      - Standardized template format
+      - Table of contents
+      - Sections: Metadata, Decisions, Action Items, Risks, Next Steps
+      - Confidence scores in collapsible sections
+      - Action items sorted by urgency
+      - Timestamp and tool version in footer
+      - Optional JSON export for programmatic use
+    </output_generation>
 
-    <accessibility>
-      - Full keyboard navigation
-      - Screen reader support
-      - ARIA labels and roles
-      - High contrast mode
-      - Focus management
-      - Reduced motion support
-    </accessibility>
-
-    <responsive_design>
-      - Mobile-first responsive layout
-      - Touch-optimized interface
-      - Collapsible sidebar on mobile
-      - Swipe gestures for navigation
-      - Adaptive artifact display
-      - Progressive Web App (PWA) support
-    </responsive_design>
+    <cli_interface>
+      - Single file processing mode
+      - Batch processing mode
+      - Configuration file support
+      - Verbose/quiet logging modes
+      - Dry-run mode (no file writing)
+      - Force mode (skip ambiguity checks)
+      - No-review mode (auto-approve)
+      - Custom output directory
+      - Template customization
+    </cli_interface>
   </core_features>
 
-  <database_schema>
-    <tables>
-      <users>
-        - id, email, name, avatar_url
-        - created_at, last_login
-        - preferences (JSON: theme, font_size, etc.)
-        - custom_instructions
-      </users>
+  <data_models>
+    <meeting_metadata>
+      - title: str
+      - date: datetime
+      - participants: list[str]
+      - duration: timedelta | str
+      - source_file: Path
+      - processed_at: datetime
+    </meeting_metadata>
 
-      <projects>
-        - id, user_id, name, description, color
-        - custom_instructions, knowledge_base_path
-        - created_at, updated_at
-        - is_archived, is_pinned
-      </projects>
+    <decision>
+      - content: str (the decision made)
+      - context: str (surrounding context)
+      - confidence: float (0.0-1.0)
+      - source_section: str (reference to original text)
+    </decision>
 
-      <conversations>
-        - id, user_id, project_id, title
-        - model, created_at, updated_at, last_message_at
-        - is_archived, is_pinned, is_deleted
-        - settings (JSON: temperature, max_tokens, etc.)
-        - token_count, message_count
-      </conversations>
+    <action_item>
+      - task: str (description of action)
+      - owner: str | None (assigned person/team)
+      - deadline: datetime | None
+      - urgency: Literal["High", "Medium", "Low"]
+      - confidence: float (0.0-1.0)
+      - dependencies: list[str] (other action items)
+      - status: Literal["extracted"] (for future enhancement)
+    </action_item>
 
-      <messages>
-        - id, conversation_id, role (user/assistant/system)
-        - content, created_at, edited_at
-        - tokens, finish_reason
-        - images (JSON array of image data)
-        - parent_message_id (for branching)
-      </messages>
+    <risk>
+      - description: str
+      - severity: Literal["High", "Medium", "Low"] | None
+      - mitigation: str | None
+      - confidence: float (0.0-1.0)
+      - raised_by: str | None
+    </risk>
 
-      <artifacts>
-        - id, message_id, conversation_id
-        - type (code/html/svg/react/mermaid/text)
-        - title, identifier, language
-        - content, version
-        - created_at, updated_at
-      </artifacts>
+    <next_step>
+      - description: str
+      - responsible_party: str | None
+      - timeline: str | None
+      - confidence: float (0.0-1.0)
+    </next_step>
 
-      <shared_conversations>
-        - id, conversation_id, share_token
-        - created_at, expires_at, view_count
-        - is_public
-      </shared_conversations>
+    <extraction_result>
+      - metadata: MeetingMetadata
+      - decisions: list[Decision]
+      - action_items: list[ActionItem]
+      - risks: list[Risk]
+      - next_steps: list[NextStep]
+      - overall_confidence: float
+      - ambiguity_warnings: list[str]
+    </extraction_result>
 
-      <prompt_library>
-        - id, user_id, title, description
-        - prompt_template, category, tags (JSON)
-        - is_public, usage_count
-        - created_at, updated_at
-      </prompt_library>
+    <processing_status>
+      - file_path: Path
+      - status: Literal["success", "failed", "skipped"]
+      - error_message: str | None
+      - output_path: Path | None
+      - processing_time: float
+    </processing_status>
+  </data_models>
 
-      <conversation_folders>
-        - id, user_id, project_id, name, parent_folder_id
-        - created_at, position
-      </conversation_folders>
+  <claude_integration>
+    <api_configuration>
+      - Model: claude-sonnet-4-5-20251101 (primary), claude-opus-4-5-20251101 (fallback)
+      - API key from environment variable (ANTHROPIC_API_KEY)
+      - Timeout configuration (60s default)
+      - Retry logic with exponential backoff
+      - Rate limit handling
+    </api_configuration>
 
-      <conversation_folder_items>
-        - id, folder_id, conversation_id
-      </conversation_folder_items>
+    <structured_extraction_approach>
+      - Use Anthropic's tool use / structured outputs
+      - Define JSON schema for extraction format
+      - Single API call per document (efficiency)
+      - System prompt with extraction instructions
+      - Few-shot examples in prompt (optional)
+      - Temperature: 0.0 (deterministic extraction)
+      - Max tokens: configurable (default: 4096)
+    </structured_extraction_approach>
 
-      <usage_tracking>
-        - id, user_id, conversation_id, message_id
-        - model, input_tokens, output_tokens
-        - cost_estimate, created_at
-      </usage_tracking>
+    <prompt_engineering>
+      - Clear instructions for each extraction category
+      - Urgency classification criteria
+      - Confidence scoring guidelines
+      - Ambiguity detection instructions
+      - Output format specification
+      - Edge case handling rules
+    </prompt_engineering>
 
-      <api_keys>
-        - id, user_id, key_name, api_key_hash
-        - created_at, last_used_at
-        - is_active
-      </api_keys>
-    </tables>
-  </database_schema>
+    <error_handling>
+      - API timeout handling
+      - Rate limit retry
+      - Invalid response handling
+      - Partial extraction recovery
+      - Token limit exceeded handling
+      - Network error recovery
+    </error_handling>
+  </claude_integration>
 
-  <api_endpoints_summary>
-    <authentication>
-      - POST /api/auth/login
-      - POST /api/auth/logout
-      - GET /api/auth/me
-      - PUT /api/auth/profile
-    </authentication>
+  <system_architecture>
+    <high_level_design>
+      ┌─────────────────────┐
+      │   CLI Interface     │
+      │  - Argument parsing │
+      │  - User prompts     │
+      └──────────┬──────────┘
+                 │
+                 ▼
+      ┌─────────────────────┐
+      │  Batch Processor    │
+      │  - File validation  │
+      │  - Queue management │
+      └──────────┬──────────┘
+                 │
+                 ▼
+      ┌─────────────────────┐
+      │  File Parser        │
+      │  - PDF extraction   │
+      │  - Text reading     │
+      └──────────┬──────────┘
+                 │
+                 ▼
+      ┌─────────────────────┐
+      │  Claude Extractor   │
+      │  - API calls        │
+      │  - Schema validation│
+      └──────────┬──────────┘
+                 │
+                 ▼
+      ┌─────────────────────┐
+      │  Review Interface   │
+      │  - Display results  │
+      │  - User approval    │
+      └──────────┬──────────┘
+                 │
+                 ▼
+      ┌─────────────────────┐
+      │  Markdown Generator │
+      │  - Template render  │
+      │  - File writing     │
+      └─────────────────────┘
+    </high_level_design>
 
-    <conversations>
-      - GET /api/conversations
-      - POST /api/conversations
-      - GET /api/conversations/:id
-      - PUT /api/conversations/:id
-      - DELETE /api/conversations/:id
-      - POST /api/conversations/:id/duplicate
-      - POST /api/conversations/:id/export
-      - PUT /api/conversations/:id/archive
-      - PUT /api/conversations/:id/pin
-      - POST /api/conversations/:id/branch
-    </conversations>
+    <fc_is_pattern>
+      Imperative Shell                 Functional Core
+      ┌──────────────────────┐        ┌──────────────────┐
+      │ File I/O             │───────>│ Text parsing     │
+      │ CLI argument parsing │───────>│ Extraction logic │
+      │ API calls (Claude)   │───────>│ Ranking/sorting  │
+      │ User input/output    │<───────│ Validation rules │
+      │ Markdown writing     │<───────│ Template logic   │
+      └──────────────────────┘        └──────────────────┘
+         Side Effects                    Pure Functions
+         (src/meeting_extractor/         (src/meeting_extractor/
+          infrastructure/)                core/)
+    </fc_is_pattern>
 
-    <messages>
-      - GET /api/conversations/:id/messages
-      - POST /api/conversations/:id/messages
-      - PUT /api/messages/:id
-      - DELETE /api/messages/:id
-      - POST /api/messages/:id/regenerate
-      - GET /api/messages/stream (SSE endpoint)
-    </messages>
+    <processing_flow>
+      1. Parse CLI arguments and validate inputs
+      2. Load configuration from file/environment
+      3. Build file processing queue
+      4. For each file:
+         a. Validate file size and format
+         b. Extract text content
+         c. Send to Claude for structured extraction
+         d. Validate extraction schema
+         e. Rank action items by urgency
+         f. Calculate confidence scores
+         g. Check for ambiguities (first attempt)
+         h. Display for user review
+         i. Generate markdown output
+         j. Save to file on approval
+      5. Generate batch processing summary
+      6. Display success/failure statistics
+    </processing_flow>
 
-    <artifacts>
-      - GET /api/conversations/:id/artifacts
-      - GET /api/artifacts/:id
-      - PUT /api/artifacts/:id
-      - DELETE /api/artifacts/:id
-      - POST /api/artifacts/:id/fork
-      - GET /api/artifacts/:id/versions
-    </artifacts>
+    <error_recovery>
+      - Graceful degradation on extraction failures
+      - Partial results saved if possible
+      - Detailed error logging
+      - User-friendly error messages
+      - Automatic retry for transient failures
+      - Skip and continue for batch processing
+    </error_recovery>
+  </system_architecture>
 
-    <projects>
-      - GET /api/projects
-      - POST /api/projects
-      - GET /api/projects/:id
-      - PUT /api/projects/:id
-      - DELETE /api/projects/:id
-      - POST /api/projects/:id/knowledge
-      - GET /api/projects/:id/conversations
-      - PUT /api/projects/:id/settings
-    </projects>
+  <design_principles>
+    <quality_over_speed>
+      - Correctness and reliability prioritized
+      - Proper error handling mandatory
+      - Thorough testing required (95% coverage minimum)
+      - Clear, maintainable code
+      - Comprehensive logging
+    </quality_over_speed>
 
-    <sharing>
-      - POST /api/conversations/:id/share
-      - GET /api/share/:token
-      - DELETE /api/share/:token
-      - PUT /api/share/:token/settings
-    </sharing>
+    <no_backward_compatibility>
+      - Breaking changes acceptable during development
+      - Always use best current approach
+      - Delete old code completely (no deprecation)
+      - Refactor aggressively
+      - Use latest Python features and patterns
+    </no_backward_compatibility>
 
-    <prompts>
-      - GET /api/prompts/library
-      - POST /api/prompts/library
-      - GET /api/prompts/:id
-      - PUT /api/prompts/:id
-      - DELETE /api/prompts/:id
-      - GET /api/prompts/categories
-      - GET /api/prompts/examples
-    </prompts>
+    <solid_principles>
+      - Single Responsibility: One reason to change
+      - Open/Closed: Open for extension, closed for modification
+      - Liskov Substitution: Derived classes substitutable
+      - Interface Segregation: No fat interfaces
+      - Dependency Inversion: Depend on abstractions
+    </solid_principles>
 
-    <search>
-      - GET /api/search/conversations?q=query
-      - GET /api/search/messages?q=query
-      - GET /api/search/artifacts?q=query
-      - GET /api/search/prompts?q=query
-    </search>
+    <test_driven_development>
+      - Tests written before implementation (mandatory)
+      - Red-Green-Refactor cycle
+      - 95% minimum line coverage
+      - 100% coverage for functional core
+      - Integration tests for Claude API
+      - Mock Claude responses for unit tests
+    </test_driven_development>
 
-    <folders>
-      - GET /api/folders
-      - POST /api/folders
-      - PUT /api/folders/:id
-      - DELETE /api/folders/:id
-      - POST /api/folders/:id/items
-      - DELETE /api/folders/:id/items/:conversationId
-    </folders>
-
-    <usage>
-      - GET /api/usage/daily
-      - GET /api/usage/monthly
-      - GET /api/usage/by-model
-      - GET /api/usage/conversations/:id
-    </usage>
-
-    <settings>
-      - GET /api/settings
-      - PUT /api/settings
-      - GET /api/settings/custom-instructions
-      - PUT /api/settings/custom-instructions
-    </settings>
-
-    <claude_api>
-      - POST /api/claude/chat (proxy to Claude API)
-      - POST /api/claude/chat/stream (streaming proxy)
-      - GET /api/claude/models
-      - POST /api/claude/images/upload
-    </claude_api>
-  </api_endpoints_summary>
-
-  <ui_layout>
-    <main_structure>
-      - Three-column layout: sidebar (conversations), main (chat), panel (artifacts)
-      - Collapsible sidebar with resize handle
-      - Responsive breakpoints: mobile (single column), tablet (two column), desktop (three column)
-      - Persistent header with project/model selector
-      - Bottom input area with send button and options
-    </main_structure>
-
-    <sidebar_left>
-      - New chat button (prominent)
-      - Project selector dropdown
-      - Search conversations input
-      - Conversations list (grouped by date: Today, Yesterday, Previous 7 days, etc.)
-      - Folder tree view (collapsible)
-      - Settings gear icon at bottom
-      - User profile at bottom
-    </sidebar_left>
-
-    <main_chat_area>
-      - Conversation title (editable inline)
-      - Model selector badge
-      - Message history (scrollable)
-      - Welcome screen for new conversations
-      - Suggested prompts (empty state)
-      - Input area with formatting toolbar
-      - Attachment button for images
-      - Send button with loading state
-      - Stop generation button
-    </main_chat_area>
-
-    <artifacts_panel>
-      - Artifact header with title and type badge
-      - Code editor or preview pane
-      - Tabs for multiple artifacts
-      - Full-screen toggle
-      - Download button
-      - Edit/Re-prompt button
-      - Version selector
-      - Close panel button
-    </artifacts_panel>
-
-    <modals_overlays>
-      - Settings modal (tabbed interface)
-      - Share conversation modal
-      - Export options modal
-      - Project settings modal
-      - Prompt library modal
-      - Command palette overlay
-      - Keyboard shortcuts reference
-    </modals_overlays>
-  </ui_layout>
-
-  <design_system>
-    <color_palette>
-      - Primary: Orange/amber accent (#CC785C claude-style)
-      - Background: White (light mode), Dark gray (#1A1A1A dark mode)
-      - Surface: Light gray (#F5F5F5 light), Darker gray (#2A2A2A dark)
-      - Text: Near black (#1A1A1A light), Off-white (#E5E5E5 dark)
-      - Borders: Light gray (#E5E5E5 light), Dark gray (#404040 dark)
-      - Code blocks: Monaco editor theme
-    </color_palette>
-
-    <typography>
-      - Sans-serif system font stack (Inter, SF Pro, Roboto, system-ui)
-      - Headings: font-semibold
-      - Body: font-normal, leading-relaxed
-      - Code: Monospace (JetBrains Mono, Consolas, Monaco)
-      - Message text: text-base (16px), comfortable line-height
-    </typography>
-
-    <components>
-      <message_bubble>
-        - User messages: Right-aligned, subtle background
-        - Assistant messages: Left-aligned, no background
-        - Markdown formatting with proper spacing
-        - Inline code with bg-gray-100 background
-        - Code blocks with syntax highlighting
-        - Copy button on code blocks
-      </message_bubble>
-
-      <buttons>
-        - Primary: Orange/amber background, white text, rounded
-        - Secondary: Border style with hover fill
-        - Icon buttons: Square with hover background
-        - Disabled state: Reduced opacity, no pointer events
-      </buttons>
-
-      <inputs>
-        - Rounded borders with focus ring
-        - Textarea auto-resize
-        - Placeholder text in gray
-        - Error states in red
-        - Character counter
-      </inputs>
-
-      <cards>
-        - Subtle border or shadow
-        - Rounded corners (8px)
-        - Padding: p-4 to p-6
-        - Hover state: slight shadow increase
-      </cards>
-    </components>
-
-    <animations>
-      - Smooth transitions (150-300ms)
-      - Fade in for new messages
-      - Slide in for sidebar
-      - Typing indicator animation
-      - Loading spinner for generation
-      - Skeleton loaders for content
-    </animations>
-  </design_system>
-
-  <key_interactions>
-    <message_flow>
-      1. User types message in input field
-      2. Optional: Attach images via button
-      3. Click send or press Enter
-      4. Message appears in chat immediately
-      5. Typing indicator shows while waiting
-      6. Response streams in word by word
-      7. Code blocks render with syntax highlighting
-      8. Artifacts detected and rendered in side panel
-      9. Message complete, enable regenerate option
-    </message_flow>
-
-    <artifact_flow>
-      1. Assistant generates artifact in response
-      2. Artifact panel slides in from right
-      3. Content renders (code with highlighting or live preview)
-      4. User can edit artifact inline
-      5. "Re-prompt" button to iterate with Claude
-      6. Download or copy artifact content
-      7. Full-screen mode for detailed work
-      8. Close panel to return to chat focus
-    </artifact_flow>
-
-    <conversation_management>
-      1. Click "New Chat" to start fresh conversation
-      2. Conversations auto-save with first message
-      3. Auto-generate title from first exchange
-      4. Click title to rename inline
-      5. Drag conversations into folders
-      6. Right-click for context menu (pin, archive, delete, export)
-      7. Search filters conversations in real-time
-      8. Click conversation to switch context
-    </conversation_management>
-  </key_interactions>
+    <user_experience>
+      - Clear progress indicators
+      - Helpful error messages
+      - Sensible defaults
+      - Minimal required configuration
+      - Fast feedback loops
+      - Professional output formatting
+    </user_experience>
+  </design_principles>
 
   <implementation_steps>
     <step number="1">
-      <title>Setup Project Foundation and Database</title>
+      <title>Project Foundation</title>
       <tasks>
-        - Initialize Express server with SQLite database
-        - Set up Claude API client with streaming support
-        - Create database schema with migrations
-        - Implement authentication endpoints
-        - Set up basic CORS and middleware
-        - Create health check endpoint
+        - Set up src/ layout project structure
+        - Configure uv package management
+        - Establish core/ and infrastructure/ separation
+        - Configure mypy strict mode, ruff, pytest
+        - Create base Pydantic models
+        - Set up structlog logging
+        - Initialize .gitignore
+        - Create pyproject.toml with dependencies
       </tasks>
     </step>
 
     <step number="2">
-      <title>Build Core Chat Interface</title>
+      <title>Core Domain Models</title>
       <tasks>
-        - Create main layout with sidebar and chat area
-        - Implement message display with markdown rendering
-        - Add streaming message support with SSE
-        - Build input area with auto-resize textarea
-        - Add code block syntax highlighting
-        - Implement stop generation functionality
-        - Add typing indicators and loading states
+        - Define MeetingMetadata model
+        - Define Decision model
+        - Define ActionItem model with urgency enum
+        - Define Risk model
+        - Define NextStep model
+        - Define ExtractionResult aggregate model
+        - Define ProcessingStatus model
+        - Write comprehensive unit tests for models
       </tasks>
     </step>
 
     <step number="3">
-      <title>Conversation Management</title>
+      <title>File Processing Infrastructure</title>
       <tasks>
-        - Create conversation list in sidebar
-        - Implement new conversation creation
-        - Add conversation switching
-        - Build conversation rename functionality
-        - Implement delete with confirmation
-        - Add conversation search
-        - Create conversation grouping by date
+        - Implement file validation (size, format)
+        - Create PDF text extraction
+        - Create MD/TXT file reading
+        - Implement encoding detection
+        - Add language detection (English check)
+        - Build file processor abstraction
+        - Write tests for all file types
       </tasks>
     </step>
 
     <step number="4">
-      <title>Artifacts System</title>
+      <title>Claude API Integration</title>
       <tasks>
-        - Build artifact detection from Claude responses
-        - Create artifact rendering panel
-        - Implement code artifact viewer
-        - Add HTML/SVG live preview
-        - Build artifact editing interface
-        - Add artifact versioning
-        - Implement full-screen artifact view
+        - Set up Anthropic SDK client
+        - Design extraction JSON schema
+        - Implement structured extraction function
+        - Create prompt templates
+        - Add retry logic with exponential backoff
+        - Implement rate limiting
+        - Write integration tests with mocked API
+        - Test with real API (small samples)
       </tasks>
     </step>
 
     <step number="5">
-      <title>Projects and Organization</title>
+      <title>Extraction and Ranking Logic</title>
       <tasks>
-        - Create projects CRUD endpoints
-        - Build project selector UI
-        - Implement project-specific custom instructions
-        - Add folder system for conversations
-        - Create drag-and-drop organization
-        - Build project settings panel
+        - Implement urgency classification algorithm
+        - Build confidence scoring calculation
+        - Create deadline extraction and parsing
+        - Implement ambiguity detection
+        - Build validation rules for extracted data
+        - Sort action items by urgency
+        - Write comprehensive unit tests
       </tasks>
     </step>
 
     <step number="6">
-      <title>Advanced Features</title>
+      <title>Review Workflow</title>
       <tasks>
-        - Add model selection dropdown
-        - Implement temperature and parameter controls
-        - Build image upload functionality
-        - Create message editing and regeneration
-        - Add conversation branching
-        - Implement export functionality
+        - Design terminal output formatter
+        - Implement confidence score display
+        - Create interactive approval prompt
+        - Build low-confidence highlighting
+        - Add edit-before-save option (optional)
+        - Implement review bypass flag
+        - Test user interaction flows
       </tasks>
     </step>
 
     <step number="7">
-      <title>Settings and Customization</title>
+      <title>Markdown Output Generation</title>
       <tasks>
-        - Build settings modal with tabs
-        - Implement theme switching (light/dark)
-        - Add custom instructions management
-        - Create keyboard shortcuts
-        - Build prompt library
-        - Add usage tracking dashboard
+        - Create markdown template
+        - Implement template rendering
+        - Add table of contents generation
+        - Format action items table
+        - Add confidence score sections
+        - Implement file naming convention
+        - Create output directory handling
+        - Write output generation tests
       </tasks>
     </step>
 
     <step number="8">
-      <title>Sharing and Collaboration</title>
+      <title>Batch Processing</title>
       <tasks>
-        - Implement conversation sharing with tokens
-        - Create public share view
-        - Add export to multiple formats
-        - Build prompt templates
-        - Create example conversations
+        - Build file queue management
+        - Implement sequential processing
+        - Add progress tracking display
+        - Create error handling for batch
+        - Generate batch summary report
+        - Log failed files for retry
+        - Test batch processing scenarios
       </tasks>
     </step>
 
     <step number="9">
-      <title>Polish and Optimization</title>
+      <title>CLI Interface</title>
       <tasks>
-        - Optimize for mobile responsiveness
-        - Add command palette (Cmd+K)
-        - Implement comprehensive keyboard navigation
-        - Add onboarding flow
-        - Create accessibility improvements
-        - Performance optimization and caching
+        - Design CLI argument structure
+        - Implement main command
+        - Add batch processing mode
+        - Create configuration file loading
+        - Implement verbosity levels
+        - Add dry-run mode
+        - Create help documentation
+        - Test all CLI options
+      </tasks>
+    </step>
+
+    <step number="10">
+      <title>Configuration and Settings</title>
+      <tasks>
+        - Design configuration schema
+        - Implement XDG directory support
+        - Create default configuration
+        - Add environment variable support
+        - Implement config validation
+        - Document configuration options
+        - Test configuration loading
+      </tasks>
+    </step>
+
+    <step number="11">
+      <title>Error Handling and Logging</title>
+      <tasks>
+        - Implement comprehensive error handlers
+        - Create user-friendly error messages
+        - Set up structured logging
+        - Add debug logging mode
+        - Create error recovery mechanisms
+        - Test error scenarios
+        - Document troubleshooting
+      </tasks>
+    </step>
+
+    <step number="12">
+      <title>Testing and Quality Assurance</title>
+      <tasks>
+        - Achieve 95%+ test coverage
+        - Create integration test suite
+        - Test with various meeting formats
+        - Validate extraction accuracy
+        - Test edge cases and errors
+        - Performance testing
+        - User acceptance testing
+      </tasks>
+    </step>
+
+    <step number="13">
+      <title>Documentation</title>
+      <tasks>
+        - Write comprehensive README
+        - Create user guide
+        - Document CLI options
+        - Create configuration guide
+        - Write API documentation
+        - Create troubleshooting guide
+        - Add usage examples
+        - Write developer documentation
+      </tasks>
+    </step>
+
+    <step number="14">
+      <title>Polish and Release</title>
+      <tasks>
+        - Final code review
+        - Performance optimization
+        - Clean up debug code
+        - Version tagging
+        - Create release notes
+        - Package for distribution
+        - Create installation instructions
       </tasks>
     </step>
   </implementation_steps>
 
   <success_criteria>
     <functionality>
-      - Streaming chat responses work smoothly
-      - Artifact detection and rendering accurate
-      - Conversation management intuitive and reliable
-      - Project organization clear and useful
-      - Image upload and display working
-      - All CRUD operations functional
+      - Successfully process PDF, MD, and TXT files up to 5MB
+      - Extract meeting metadata accurately (title, date, participants, duration)
+      - Identify and extract decisions with context
+      - Extract action items with owners and deadlines
+      - Identify and extract risks with mitigation
+      - Extract next steps with responsible parties
+      - Rank action items by urgency accurately
+      - Generate confidence scores for all items
+      - Detect ambiguous/incomplete content
+      - Support batch processing of multiple files
+      - Provide user review workflow
+      - Generate well-formatted markdown output
+      - Handle errors gracefully
     </functionality>
 
+    <quality_and_standards>
+      - 95%+ test coverage across codebase
+      - 100% coverage for functional core
+      - Zero mypy errors in strict mode
+      - Zero ruff linting violations
+      - All code follows SOLID principles
+      - Clear FC/IS architectural separation
+      - Comprehensive documentation
+      - All configuration follows XDG standards
+    </quality_and_standards>
+
+    <performance>
+      - Process typical meeting transcript (&lt;1000 lines) in under 10 seconds
+      - Handle maximum file size (5MB) without errors
+      - Batch process 10 files efficiently
+      - Graceful handling of API rate limits
+      - Minimal memory footprint
+      - Fast startup time (&lt;1 second)
+    </performance>
+
     <user_experience>
-      - Interface matches claude.ai design language
-      - Responsive on all device sizes
-      - Smooth animations and transitions
-      - Fast response times and minimal lag
-      - Intuitive navigation and workflows
-      - Clear feedback for all actions
+      - Clear and intuitive CLI interface
+      - Helpful error messages
+      - Visible progress indicators
+      - Professional markdown output
+      - Easy configuration
+      - Minimal setup required
+      - Works out of the box with API key
     </user_experience>
 
-    <technical_quality>
-      - Clean, maintainable code structure
-      - Proper error handling throughout
-      - Secure API key management
-      - Optimized database queries
-      - Efficient streaming implementation
-      - Comprehensive testing coverage
-    </technical_quality>
-
-    <design_polish>
-      - Consistent with claude.ai visual design
-      - Beautiful typography and spacing
-      - Smooth animations and micro-interactions
-      - Excellent contrast and accessibility
-      - Professional, polished appearance
-      - Dark mode fully implemented
-    </design_polish>
+    <extraction_quality>
+      - High confidence scores (&gt;0.8) for clear content
+      - Accurate urgency classification
+      - Correct deadline extraction and formatting
+      - Complete action item owner identification
+      - No hallucinated information
+      - Proper ambiguity detection
+    </extraction_quality>
   </success_criteria>
+
+  <cli_commands>
+    <basic_usage>
+      # Process single file
+      meeting-extract input.pdf
+
+      # Process single file with custom output
+      meeting-extract input.pdf --output /path/to/output.md
+
+      # Batch process multiple files
+      meeting-extract file1.pdf file2.md file3.txt
+
+      # Process all files in directory
+      meeting-extract meetings/*.pdf
+    </basic_usage>
+
+    <advanced_options>
+      # Skip user review (auto-approve)
+      meeting-extract input.pdf --no-review
+
+      # Force processing of ambiguous content
+      meeting-extract input.pdf --force
+
+      # Dry run (don't write files)
+      meeting-extract input.pdf --dry-run
+
+      # Verbose output
+      meeting-extract input.pdf --verbose
+
+      # Quiet mode (minimal output)
+      meeting-extract input.pdf --quiet
+
+      # Custom output directory
+      meeting-extract input.pdf --output-dir ./minutes/
+
+      # Use custom configuration file
+      meeting-extract input.pdf --config custom-config.toml
+
+      # Export JSON alongside markdown
+      meeting-extract input.pdf --json
+
+      # Set confidence threshold
+      meeting-extract input.pdf --confidence-threshold 0.6
+    </advanced_options>
+
+    <help_and_version>
+      # Show help
+      meeting-extract --help
+
+      # Show version
+      meeting-extract --version
+    </help_and_version>
+  </cli_commands>
+
+  <output_format_example>
+    <markdown_template>
+      # Meeting Minutes: [Meeting Title]
+
+      **Date:** [Meeting Date]
+      **Duration:** [Duration]
+      **Participants:** [Comma-separated list]
+
+      ---
+
+      ## Table of Contents
+      1. [Decisions Made](#decisions-made)
+      2. [Action Items](#action-items)
+      3. [Risks Identified](#risks-identified)
+      4. [Next Steps](#next-steps)
+
+      ---
+
+      ## Decisions Made
+
+      ### Decision 1
+      [Decision content]
+
+      **Context:** [Additional context]
+      **Confidence:** [0.XX]
+
+      ---
+
+      ## Action Items
+
+      | Urgency | Task | Owner | Deadline | Confidence |
+      |---------|------|-------|----------|------------|
+      | 🔴 High | [Task description] | [Owner] | [Date] | 0.XX |
+      | 🟡 Medium | [Task description] | [Owner] | [Date] | 0.XX |
+      | 🟢 Low | [Task description] | [Owner] | [Date] | 0.XX |
+
+      ---
+
+      ## Risks Identified
+
+      ### Risk 1: [Risk description]
+      **Severity:** [High/Medium/Low]
+      **Mitigation:** [Mitigation strategy if mentioned]
+      **Confidence:** [0.XX]
+
+      ---
+
+      ## Next Steps
+
+      1. [Next step description] - [Responsible party] - [Timeline]
+         **Confidence:** [0.XX]
+
+      ---
+
+      ## Extraction Metadata
+
+      **Generated by:** Meeting Minutes Extractor v[version]
+      **Processed at:** [ISO 8601 timestamp]
+      **Source file:** [Original filename]
+      **Overall confidence:** [0.XX]
+
+      &lt;details&gt;
+      &lt;summary&gt;Low Confidence Items (Click to expand)&lt;/summary&gt;
+
+      [List of items with confidence &lt; threshold]
+
+      &lt;/details&gt;
+    </markdown_template>
+  </output_format_example>
+
+  <configuration_file_format>
+    <example_toml>
+      [api]
+      provider = "anthropic"
+      model = "claude-sonnet-4-5-20251101"
+      timeout = 60
+      max_retries = 3
+
+      [extraction]
+      confidence_threshold = 0.7
+      temperature = 0.0
+      max_tokens = 4096
+
+      [urgency]
+      high_keywords = ["urgent", "ASAP", "critical", "immediate"]
+      medium_keywords = ["soon", "important", "priority"]
+      low_keywords = ["eventually", "nice to have", "consider"]
+
+      [output]
+      directory = "~/Documents/meeting-minutes"
+      include_json = false
+      include_confidence_scores = true
+      template = "default"
+
+      [processing]
+      batch_mode = true
+      continue_on_error = true
+      auto_approve = false
+      force_ambiguous = false
+
+      [validation]
+      max_file_size_mb = 5
+      require_english = true
+      min_text_length = 100
+    </example_toml>
+  </configuration_file_format>
+
+  <open_questions>
+    <pdf_library_selection>
+      - Which PDF parsing library provides best text extraction?
+      - How to handle scanned PDFs (OCR needed)?
+      - How to handle multi-column PDF layouts?
+    </pdf_library_selection>
+
+    <cli_framework_selection>
+      - Click vs Typer vs argparse - which provides best UX?
+      - Should we use rich for enhanced terminal output?
+      - How to handle interactive vs non-interactive modes?
+    </cli_framework_selection>
+
+    <extraction_optimization>
+      - Can we reduce API calls for very long documents?
+      - Should we chunk large documents?
+      - How to handle meeting transcripts vs formal notes differently?
+    </extraction_optimization>
+
+    <urgency_algorithm>
+      - What keywords indicate high/medium/low urgency?
+      - How to weight deadline proximity vs keyword urgency?
+      - Should urgency be configurable per user/organization?
+    </urgency_algorithm>
+
+    <template_customization>
+      - Should users be able to customize markdown templates?
+      - Support for multiple output formats (HTML, JSON, etc.)?
+      - Organization-specific template requirements?
+    </template_customization>
+
+    <future_enhancements>
+      - Integration with task management systems (Jira, Asana)?
+      - Automatic email distribution of minutes?
+      - Version tracking for re-processed meetings?
+      - Support for other languages?
+      - OCR support for scanned documents?
+      - Audio transcription integration?
+    </future_enhancements>
+  </open_questions>
+
+  <file_types_supported>
+    <supported>
+      - .pdf - PDF documents (text-based, not scanned)
+      - .md - Markdown files
+      - .txt - Plain text files
+    </supported>
+
+    <explicitly_excluded>
+      - Audio files (.mp3, .wav, .m4a, etc.)
+      - Video files (.mp4, .avi, .mov, etc.)
+      - Scanned PDFs without OCR
+      - Image files (.jpg, .png, etc.)
+      - Word documents (.docx, .doc)
+      - Compressed archives (.zip, .tar, etc.)
+    </explicitly_excluded>
+
+    <future_consideration>
+      - .docx - Microsoft Word (potential future addition)
+      - OCR-processed scanned PDFs
+      - Audio transcription preprocessing
+    </future_consideration>
+  </file_types_supported>
+
+  <security_and_privacy>
+    <data_handling>
+      - Meeting content sent to Anthropic API
+      - Data privacy not a primary concern (per requirements)
+      - No local database or persistent storage
+      - Output files stored in user-specified location
+      - API keys stored in environment variables
+      - No telemetry or analytics collection
+    </data_handling>
+
+    <recommendations>
+      - Use environment variables for API keys (never hardcode)
+      - Consider local LLM option for sensitive meetings (future)
+      - Inform users that content is sent to third-party API
+      - Provide option to review API calls in verbose mode
+    </recommendations>
+  </security_and_privacy>
+
+  <resources>
+    - Anthropic API Documentation: https://docs.anthropic.com/
+    - Anthropic Python SDK: https://github.com/anthropics/anthropic-sdk-python
+    - Structured Outputs Guide: https://docs.anthropic.com/en/docs/build-with-claude/tool-use
+    - XDG Base Directory Spec: https://specifications.freedesktop.org/basedir-spec/latest/
+    - Python Packaging Guide: https://packaging.python.org/
+  </resources>
+
+  <notes>
+    <project_status>
+      Currently in specification phase. No implementation started. Ready to begin development.
+    </project_status>
+
+    <critical_requirements>
+      - MUST use Anthropic Claude for extraction
+      - MUST support batch processing
+      - MUST provide user review before saving
+      - MUST include confidence scoring
+      - MUST rank action items by urgency
+      - MUST extract deadlines
+      - MUST handle ambiguous content appropriately
+      - MUST follow XDG standards
+      - MUST use src/ layout
+      - Test-Driven Development (TDD) required
+      - 95% minimum test coverage
+    </critical_requirements>
+
+    <design_decisions>
+      - Language: English only (per requirements)
+      - Max file size: 5MB (per requirements)
+      - Storage: File-based only, no database (per requirements)
+      - Privacy: Not a concern, third-party API acceptable (per requirements)
+      - Audio/Video: Explicitly not supported (per requirements)
+      - Review: Required by default, can be skipped with flag (per requirements)
+      - Ambiguity: Error first, force retry allowed (per requirements)
+    </design_decisions>
+
+    <development_approach>
+      - Start with core extraction logic (TDD)
+      - Build CLI interface incrementally
+      - Test with real meeting transcripts early
+      - Iterate on prompt engineering for accuracy
+      - Optimize for user experience throughout
+      - Document as you build
+    </development_approach>
+  </notes>
 </project_specification>

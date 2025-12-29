@@ -33,15 +33,14 @@ cat feature_list.json | grep '"passes": false' | wc -l
 Understanding the `app_spec.txt` is critical - it contains the full requirements
 for the application you're building.
 
-///////// ### STEP 2: START SERVERS (IF NOT RUNNING)
+### STEP 2: START SERVERS (IF NOT RUNNING)
 
-///////// If `init.sh` exists, run it:
-///////// ```bash
-///////// chmod +x init.sh
-///////// ./init.sh
-///////// ```
+If `init.sh` exists, run it:
+```bash
+chmod +x init.sh
+./init.sh
+```
 
-///////// Otherwise, start servers manually and document the process.
 
 ### STEP 3: VERIFICATION TEST (CRITICAL!)
 
@@ -50,25 +49,20 @@ for the application you're building.
 The previous session may have introduced bugs. Before implementing anything
 new, you MUST run verification tests.
 
-Run 1-2 of the feature tests marked as `"passes": true` that are most core to the app's functionality to verify they still work.
+Run 1-2 of the feature tests with the tag "@passing" that are most core to the app's functionality to verify they still work.
 For example, if this were a chat app, you should perform a test that logs into the app, sends a message, and gets a response.
 
-**If you find ANY issues (functional or visual):**
-- Mark that feature as "passes": false immediately
+**If you find ANY issues:**
+- Mark that feature as "@failing" immediately
 - Add issues to a list
 - Fix all issues BEFORE moving to new features
-/////////- This includes UI bugs like:
-  /////////* White-on-white text or poor contrast
-  /////////* Random characters displayed
-  /////////* Incorrect timestamps
-  /////////* Layout issues or overflow
-  /////////* Buttons too close together
-  /////////* Missing hover states
-  /////////* Console errors
+
 
 ### STEP 4: CHOOSE ONE FEATURE TO IMPLEMENT
 
-Look at feature_list.json and find the highest-priority feature with "passes": false.
+Look at each `.feature` file and find the highest-priority feature in `feature_dependencies.txt` with the tag "@failing". 
+
+Write 10 tests for this feature, focusing on both functionality and business logic. 
 
 Focus on completing one feature perfectly and completing its testing steps in this session before moving on to other features.
 It's ok if you only complete one feature in this session, as there will be more sessions later that continue to make progress.
@@ -76,44 +70,44 @@ It's ok if you only complete one feature in this session, as there will be more 
 ### STEP 5: IMPLEMENT THE FEATURE
 
 Implement the chosen feature thoroughly:
-1. Write the code (frontend and/or backend as needed)
-/////////2. Test manually using browser automation (see Step 6)
-3. Fix any issues discovered
-4. Verify the feature works end-to-end
+1. Write the tests
+2. Write the code 
+3. Test the feature
+4. Fix any issues discovered
+5. Verify the feature works
 
-### STEP 6: VERIFY WITH /////////BROWSER AUTOMATION
+### STEP 6: VERIFY WITH CLI
 
-/////////**CRITICAL:** You MUST verify features through the actual UI.
+**CRITICAL:** You MUST verify features through the actual CLI.
 
-/////////Use browser automation tools:
-/////////- Navigate to the app in a real browser
-/////////- Interact like a human user (click, type, scroll)
-/////////- Take screenshots at each step
-/////////- Verify both functionality AND visual appearance
+- Execute commands in a real terminal
+- Test with various arguments and inputs
+- Verify both functionality AND formatting
 
 **DO:**
-/////////- Test through the UI with clicks and keyboard input
-/////////- Take screenshots to verify visual appearance
-/////////- Check for console errors in browser
-/////////- Verify complete user workflows end-to-end
+- Test through the CLI with real command execution
+- Campture terminal outputs for verification of expected results
+- Check exit codes for success/failure
+- Focus tests on meaningful human behaviors
+
 
 **DON'T:**
-/////////- Only test with curl commands (backend testing alone is insufficient)
-/////////- Use JavaScript evaluation to bypass UI (no shortcuts)
-/////////- Skip visual verification
+- Only test importing modules directly (unit testing alone is insufficient)
+- Use mocked stdin/stdout to bypass actual CLI parsing (no shortcuts)
+- Skip output verification
 - Mark tests passing without thorough verification
 
-### STEP 7: UPDATE feature_list.json (CAREFULLY!)
+### STEP 7: UPDATE THE FEATURE FILE (CAREFULLY!)
 
-**YOU CAN ONLY MODIFY ONE FIELD: "passes"**
+**YOU CAN ONLY MODIFY ONE FIELD: @failing/@passing**
 
 After thorough verification, change:
-```json
-"passes": false
+```gherkin
+@failing
 ```
 to:
-```json
-"passes": true
+```gherkin
+@passing
 ```
 
 **NEVER:**
@@ -123,7 +117,7 @@ to:
 - Combine or consolidate tests
 - Reorder tests
 
-**ONLY CHANGE "passes" FIELD AFTER VERIFICATION WITH SCREENSHOTS.**
+**ONLY CHANGE @passing/@failing FIELD AFTER VERIFICATION.**
 
 ### STEP 8: COMMIT YOUR PROGRESS
 
@@ -133,9 +127,8 @@ git add .
 git commit -m "Implement [feature name] - verified end-to-end
 
 - Added [specific changes]
-////////- Tested with browser automation
-- Updated feature_list.json: marked test #X as passing
-////////- Screenshots in verification/ directory
+- Tested feature
+- Updated gherkin.feature_3.feature: marked test #X as passing
 "
 ```
 
@@ -146,32 +139,36 @@ Update `claude-progress.txt` with:
 - Which test(s) you completed
 - Any issues discovered or fixed
 - What should be worked on next
-- Current completion status (e.g., "45/200 tests passing")
+- Current completion status (e.g., "3/10 features passing")
+- A brief description of the implemented feature and related missing features in plain language (e.g., "The program can now extract data from a .csv, but the PDF extraction is not yet implemented."")
 
-### STEP 10: END SESSION CLEANLY
+### STEP 10: CHECK IF ALL WORK COMPLETED
+At the end of the session, you must check if all features are complete. If all features have the tag "@passing" and no features have the tag "@failing", then the application is complete. The autonomous coding effort should cease entirely AFTER completing step 11, and no new agent should be initiated. 
+
+### STEP 11: END SESSION CLEANLY
 
 Before context fills up:
 1. Commit all working code
 2. Update claude-progress.txt
-3. Update feature_list.json if tests verified
+3. Update gherkin.feature_*.feature if tests verified
 4. Ensure no uncommitted changes
 5. Leave app in working state (no broken features)
+
 
 ---
 
 ## TESTING REQUIREMENTS
+**Testing should focus on BUSINESS LOGIC**
 
-/////////**ALL testing must use browser automation tools.**
+For each feature, 10 tests should be created. 
 
 Available tools:
-/////////- puppeteer_navigate - Start browser and go to URL
-/////////- puppeteer_screenshot - Capture screenshot
-/////////- puppeteer_click - Click elements
-/////////- puppeteer_fill - Fill form inputs
-/////////- puppeteer_evaluate - Execute JavaScript (use sparingly, only for debugging)
+- pytest
+- behave
+- jq
+- mypy
 
-/////////Test like a human user with mouse and keyboard. Don't take shortcuts by using JavaScript evaluation.
-/////////Don't use the puppeteer "active tab" tool.
+Test like a human user. Don't take shortcuts.
 
 ---
 
@@ -184,10 +181,12 @@ Available tools:
 **Priority:** Fix broken tests before implementing new features
 
 **Quality Bar:**
-- Zero console errors
-/////////- Polished UI matching the design specified in app_spec.txt
-/////////- All features work end-to-end through the UI
+- Zero command errors
+- Follows SOLID principles
+- Uses functional core/imperative shell architecture
 - Fast, responsive, professional
+- Passes static check without warnings
+- Uses test driven design (TDD)
 
 **You have unlimited time.** Take as long as needed to get it right. The most important thing is that you
 leave the code base in a clean state before terminating the session (Step 10).
