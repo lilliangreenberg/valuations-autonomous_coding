@@ -12,7 +12,11 @@ from typing import Optional
 from claude_code_sdk import ClaudeSDKClient
 
 from client import create_client
-from progress import print_session_header, print_progress_summary
+from progress import (
+    print_session_header,
+    print_progress_summary,
+    count_failing_features,
+)
 from prompts import get_initializer_prompt, get_coding_prompt, copy_spec_to_project
 
 
@@ -122,15 +126,15 @@ async def run_autonomous_agent(
     project_dir.mkdir(parents=True, exist_ok=True)
 
     # Check if this is a fresh start or continuation
-    tests_file = project_dir / "feature_list.json"
-    is_first_run = not tests_file.exists()
+    feature_files = list(project_dir.glob("gherkin.feature_*.feature"))
+    is_first_run = len(feature_files) == 0
 
     if is_first_run:
         print("Fresh start - will use initializer agent")
         print()
         print("=" * 70)
         print("  NOTE: First session takes 10-20+ minutes!")
-        print("  The agent is generating 200 detailed test cases.")
+        print("  The agent is generating feature files with detailed scenarios.")
         print("  This may appear to hang - it's working. Watch for [Tool: ...] output.")
         print("=" * 70)
         print()
@@ -151,6 +155,17 @@ async def run_autonomous_agent(
             print(f"\nReached max iterations ({max_iterations})")
             print("To continue, run the script again without --max-iterations")
             break
+
+        # Check if all features are implemented (skip on first run)
+        if not is_first_run:
+            failing_count = count_failing_features(project_dir)
+            if failing_count == 0:
+                print("\n" + "=" * 70)
+                print("  ALL FEATURES IMPLEMENTED!")
+                print("=" * 70)
+                print("\nAll features are marked as @passing.")
+                print("The autonomous coding process is complete.")
+                break
 
         # Print session header
         print_session_header(iteration, is_first_run)

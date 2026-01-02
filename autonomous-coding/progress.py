@@ -5,35 +5,88 @@ Progress Tracking Utilities
 Functions for tracking and displaying progress of the autonomous coding agent.
 """
 
-import json
 from pathlib import Path
 
 
 def count_passing_tests(project_dir: Path) -> tuple[int, int]:
     """
-    Count passing and total tests in feature_list.json.
+    Count passing and total feature files by checking @passing/@failing tags.
 
     Args:
-        project_dir: Directory containing feature_list.json
+        project_dir: Directory containing gherkin.feature_*.feature files
 
     Returns:
         (passing_count, total_count)
     """
-    tests_file = project_dir / "feature_list.json"
+    # Find all feature files
+    feature_files = list(project_dir.glob("gherkin.feature_*.feature"))
 
-    if not tests_file.exists():
+    if not feature_files:
         return 0, 0
 
-    try:
-        with open(tests_file, "r") as f:
-            tests = json.load(f)
+    total = len(feature_files)
+    passing = 0
 
-        total = len(tests)
-        passing = sum(1 for test in tests if test.get("passes", False))
+    for feature_file in feature_files:
+        try:
+            with open(feature_file, "r", encoding="utf-8") as f:
+                # Read first few lines to find the tag
+                for line in f:
+                    line = line.strip()
+                    if line.startswith("@passing"):
+                        passing += 1
+                        break
+                    elif line.startswith("@failing"):
+                        # Found failing tag, don't increment passing counter
+                        break
+                    elif line and not line.startswith("#"):
+                        # Hit non-comment, non-tag line - assume no tag found
+                        break
+        except (IOError, UnicodeDecodeError):
+            # If we can't read the file, don't count it as passing
+            continue
 
-        return passing, total
-    except (json.JSONDecodeError, IOError):
-        return 0, 0
+    return passing, total
+
+
+def count_failing_features(project_dir: Path) -> int:
+    """
+    Count features marked as @failing.
+
+    Args:
+        project_dir: Directory containing gherkin.feature_*.feature files
+
+    Returns:
+        Number of features with @failing tag
+    """
+    # Find all feature files
+    feature_files = list(project_dir.glob("gherkin.feature_*.feature"))
+
+    if not feature_files:
+        return 0
+
+    failing = 0
+
+    for feature_file in feature_files:
+        try:
+            with open(feature_file, "r", encoding="utf-8") as f:
+                # Read first few lines to find the tag
+                for line in f:
+                    line = line.strip()
+                    if line.startswith("@failing"):
+                        failing += 1
+                        break
+                    elif line.startswith("@passing"):
+                        # Found passing tag, skip this file
+                        break
+                    elif line and not line.startswith("#"):
+                        # Hit non-comment, non-tag line - assume no tag found
+                        break
+        except (IOError, UnicodeDecodeError):
+            # If we can't read the file, skip it
+            continue
+
+    return failing
 
 
 def print_session_header(session_num: int, is_initializer: bool) -> None:
@@ -52,6 +105,6 @@ def print_progress_summary(project_dir: Path) -> None:
 
     if total > 0:
         percentage = (passing / total) * 100
-        print(f"\nProgress: {passing}/{total} tests passing ({percentage:.1f}%)")
+        print(f"\nProgress: {passing}/{total} feature files passing ({percentage:.1f}%)")
     else:
-        print("\nProgress: feature_list.json not yet created")
+        print("\nProgress: No feature files created yet")
