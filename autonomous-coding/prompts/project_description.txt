@@ -1,0 +1,37 @@
+This CLI application is a company valuation tool for use by large investment vehicles. The purpose of this application is to provide insight as to whether or not a given company should be reevaluated by the investment vehicle. 
+
+The end goal is a product that takes in an airtable containing company names and their homepages, and returns a short string indicating that the company either requires human attention (negative) or has no notable change. 
+
+The application should contain a SQLite database to hold all information identified during operations.
+
+There are two ways the program should look for 'change' in regards to the company. 
+
+1: The application should use firecrawl to search the internet for any news articles mentioning the company by name within the past 2 weeks. If any are found, the content of said article should be examined using VADER for sentiment analysis. If the contents suggest that the company is doing well, eg. they recieved another round of funding, they should be stored in the data base and the company should be marked as unchanged. If the contents suggest that the company is doing poorly, eg. the company has wound down or closed, the company should be marked as requiring human attention. If there are no news articles found, the status of the company should not be adjusted.
+
+2: The application should scrape the homepage of each company and fill out the database with the contents of the home page in both HTML and markdown. It should scrape all related pages on the site as well, eg 'about us' or 'blog'. The content should be examined using VADER for sentiment analysis. If the content is unchanged, the company should be marked as unchanged. If the contents suggest that the company is doing poorly, eg. the website returns a 404 or the company has wound down or closed, the company should be marked as requiring human attention. If the website has a paywall, they should be marked as requiring human attention. Then, on each subsequent pass through, it should scrape the pages again and compare the current contents to the historically documented content and identify any inconsistencies and mark the site as requiring human attention.
+
+The website snapshot function should at minimum have the following features:
+- Pulls company names and homepage URLs from multiple Airtable sheets
+- Intelligent duplicate resolution (handles companies listed multiple times)
+- Captures full homepage content (HTML + Markdown) 
+- Stores snapshots indefinitely for historical comparison
+- Flags paywalled sites and sites requiring authentication
+- Retry logic with exponential backoff (2 retries per company)
+
+The snapshot comparison function should AT MINIMUM have the following features: 
+Change Detection:
+- MD5 checksum comparison between snapshots
+- Change magnitude classification: Minor, Moderate, Major
+- Tracks HTTP Last-Modified headers
+- Batch processing with parallel execution (100+ companies)
+- Provides change history with timestamps
+
+Status Analysis:
+- Detects dead websites (DNS failures, 404 errors) → Likely Closed
+- Identifies acquisition mentions in content → Likely Closed
+- Analyzes copyright year staleness (pre-2024) → Likely Closed
+- Detects recent updates and activity → Operational
+- Confidence scoring for status determination
+- Flags uncertain cases for manual review
+
+This application can use firecrawl, airtable, pytest, behave, ruff, jq, beautifulsoup, VADER

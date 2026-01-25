@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  autonomous-agent:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: autonomous-coding-agent
+    environment:
+      # Required: Anthropic API key
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      # Optional: Airtable credentials (if app spec requires them)
+      - AIRTABLE_API_KEY=${AIRTABLE_API_KEY:-}
+      - AIRTABLE_BASE_ID=${AIRTABLE_BASE_ID:-}
+      # Optional: Firecrawl API key (if app spec requires it)
+      - FIRECRAWL_API_KEY=${FIRECRAWL_API_KEY:-}
+    volumes:
+      # Persist generated projects
+      - ./generations:/app/generations
+      # Mount prompts directory for easy editing
+      - ./prompts:/app/prompts:ro
+    command: >
+      python autonomous_agent_demo.py
+      --project-dir /app/generations/autonomous_demo_project
+      --model claude-sonnet-4-5-20250929
+    stdin_open: true
+    tty: true
+    restart: unless-stopped

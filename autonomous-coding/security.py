@@ -20,10 +20,12 @@ ALLOWED_COMMANDS = {
     "tail",
     "wc",
     "grep",
+    "find",
     # File operations (agent uses SDK tools for most file ops, but cp/mkdir needed occasionally)
     "cp",
     "mkdir",
     "chmod",  # For making scripts executable; validated separately
+    "xargs",
     # Directory
     "pwd",
     # Node.js development
@@ -38,6 +40,14 @@ ALLOWED_COMMANDS = {
     "pkill",  # For killing dev servers; validated separately
     # Script execution
     "init.sh",  # Init scripts; validated separately
+    # Testing
+    "pytest",
+    "mypy",
+    # Linting
+    "ruff",
+    # Uncategorized
+    "jq",
+    "behave"
 }
 
 # Commands that need additional validation even when in the allowlist
