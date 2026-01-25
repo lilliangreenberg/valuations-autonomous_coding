@@ -15,13 +15,10 @@ RUN apt-get update && apt-get install -y \
     build-essential \
     curl \
     git \
-    # Node.js (for projects the agent will build and puppeteer MCP server)
-    nodejs \
-    npm \
-    # Playwright browser dependencies
     wget \
     gnupg \
     ca-certificates \
+    # Playwright browser dependencies
     fonts-liberation \
     libasound2 \
     libatk-bridge2.0-0 \
@@ -46,12 +43,15 @@ RUN apt-get update && apt-get install -y \
     tesseract-ocr-eng \
     # Development tools
     jq \
-    # Clean up
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Node.js from NodeSource
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y nodejs \
     && rm -rf /var/lib/apt/lists/*
 
 # Install uv package manager
-RUN curl -LsSf https://astral.sh/uv/install.sh | sh
-ENV PATH="/root/.cargo/bin:$PATH"
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
 # Set working directory
 WORKDIR /app
@@ -64,6 +64,9 @@ RUN uv pip install --system -r requirements.txt
 
 # Install puppeteer MCP server globally (needed by client.py)
 RUN npm install -g puppeteer-mcp-server
+
+# Install Claude Code CLI (needed by claude-code-sdk)
+RUN npm install -g @anthropic-ai/claude-code
 
 # Install Playwright browsers (needed for LinkedIn scraping)
 RUN npx playwright install chromium --with-deps

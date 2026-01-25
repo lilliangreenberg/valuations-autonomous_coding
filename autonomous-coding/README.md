@@ -116,7 +116,7 @@ python autonomous_agent_demo.py --project-dir ./my_project --max-iterations 5
 
 - **Full app:** Building all features typically requires **many hours** of total runtime across multiple sessions.
 
-**Tip:** The feature count can be adjusted in `prompts/initializer_prompt.md`. The default is 10 feature files, each containing multiple scenarios for comprehensive coverage.
+**Tip:** The initializer agent creates one feature file for every identified feature in the spec, which may result in hundreds of files depending on the application scope. This behavior is configured in `prompts/initializer_prompt.md`.
 
 ## How It Works
 
@@ -212,9 +212,9 @@ The application will typically be available at `http://localhost:3000` or simila
 
 Edit `prompts/app_spec.txt` to specify a different application to build.
 
-### Adjusting Feature Count
+### Adjusting Feature Coverage
 
-Edit `prompts/initializer_prompt.md` to adjust the minimum number of feature files (default is 10) or the number of scenarios per feature for faster demos.
+Edit `prompts/initializer_prompt.md` to adjust feature coverage requirements. By default, one feature file is created for every identified feature in the spec (may be hundreds of files). You can modify the prompt to limit coverage for faster demos.
 
 ### Modifying Allowed Commands
 

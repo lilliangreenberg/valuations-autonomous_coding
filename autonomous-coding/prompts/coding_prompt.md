@@ -147,7 +147,7 @@ Update `claude-progress.txt` with:
 - Which test(s) you completed
 - Any issues discovered or fixed
 - What should be worked on next
-- Current completion status (e.g., "3/10 features passing")
+- Current completion status (e.g., "15/247 features passing")
 - A brief description of the implemented feature and related missing features in plain language (e.g., "The program can now extract data from a .csv, but the PDF extraction is not yet implemented."")
 
 ### STEP 11: CHECK IF ALL WORK COMPLETED

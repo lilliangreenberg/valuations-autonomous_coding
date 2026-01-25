@@ -9,8 +9,8 @@ Start by reading `app_spec.txt` in your working directory. This file contains th
 
 ### CRITICAL FIRST TASK: Create .feature files
 
-Based on `app_spec.txt`, create 10 files each called `gherkin.feature_*.feature` where * is the number of the feature, each with ONE detailed
-gherkin feature. See https://cucumber.io/docs/gherkin/reference for formatting references. These file are the exclusive sources of truth for what needs to be built. The very first line of each file should be "@failing".
+Based on `app_spec.txt`, create one file for EVERY identified feature, each called `gherkin.feature_*.feature` where * is the number of the feature, each with ONE detailed
+gherkin feature. See https://cucumber.io/docs/gherkin/reference for formatting references. These files are the exclusive sources of truth for what needs to be built. The very first line of each file should be "@failing". This may result in hundreds of feature files depending on the scope of the application - this is expected and required.
 
 
 **Format:**
@@ -54,7 +54,7 @@ Feature: Highlander
 ```
 
 **Requirements for all gherkin.feature_*.feature:**
-- Minimum 10 feature files total
+- Create one file for EVERY identified feature (may be hundreds of files)
 - Each file contains only one feature, but can contain multiple rules
 - Order features by priority: fundamental features first
 - Cover every feature in the spec exhaustively
