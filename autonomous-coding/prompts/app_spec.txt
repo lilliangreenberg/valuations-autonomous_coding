@@ -71,21 +71,29 @@ monitoring of 50-500+ companies per run with parallel execution, progress tracki
 
 <data_validation>
   <pydantic>Pydantic v2 for dataclasses and validation</pydantic>
-  <url_validation>Validate and normalize URLs</url_validation>
+  <url_validation>Validate and normalize URLs with SSRF protection (block private IP ranges, localhost, internal networks)</url_validation>
   <duplicate_resolution>Intelligent deduplication of company names across Airtable sheets with canonical name retrieval</duplicate_resolution>
-
- <json_schema>JSON schema for structure checking</json_schema>
+  <json_schema>JSON schema for structure checking</json_schema>
 </data_validation>
+
+<security>
+  <api_key_management>python-dotenv for secure environment variable loading from .env files</api_key_management>
+  <sql_injection_prevention>MANDATORY use of parameterized queries for all database operations - NO string concatenation</sql_injection_prevention>
+  <ssrf_protection>Block scraping of private IP ranges (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 127.0.0.0/8, localhost)</ssrf_protection>
+  <url_sanitization>Validate and sanitize all URLs before processing</url_sanitization>
+  <secret_scanning>Ensure .env files are in .gitignore to prevent credential leaks</secret_scanning>
+</security>
 
 <development_tools>
   <orm>SQLAlchemy v2 for storage, Alembic for schema management and migrations</orm>
   <linting>ruff for linting and formatting</linting>
   <type_checking>mypy in strict mode</type_checking>
-  <logging>standard python logging library</logging>
+  <logging>structlog for structured logging</logging>
   <testing>pytest with 90% minimum coverage</testing>
   <bdd_testing>behave for BDD-style integration tests</bdd_testing>
   <browser_automation>playwright for LinkedIn scraping (REQUIRED - Firecrawl cannot access LinkedIn)</browser_automation>
   <ocr>Tesseract OCR or similar for extracting text from screenshots (especially Twitter/LinkedIn image posts)</ocr>
+  <environment>python-dotenv for secure loading of environment variables and API keys</environment>
 </development_tools>
 
 <cli_framework>
@@ -110,7 +118,8 @@ monitoring of 50-500+ companies per run with parallel execution, progress tracki
   - Follows src/ layout pattern (mandatory)
   - Functional Core / Imperative Shell pattern to clearly separate business logic from support
   - XDG Base Directory standards for file locations
-  - Comprehensive .gitignore for standard file types
+  - Comprehensive .gitignore for standard file types including .env, *.db, __pycache__, .venv, *.pyc, logs/
+  - SECURITY: .env file MUST be in .gitignore to prevent credential leaks
 </project_structure>
 
 <api_credentials>
@@ -118,6 +127,9 @@ monitoring of 50-500+ companies per run with parallel execution, progress tracki
   - AIRTABLE_BASE_ID: Base ID for company data
   - FIRECRAWL_API_KEY: Environment variable for Firecrawl service
   - Configuration file support for non-sensitive settings
+  - SECURITY: Use python-dotenv to load from .env file (MUST be in .gitignore)
+  - SECURITY: Never hardcode API keys in source code
+  - SECURITY: .env file should have restrictive permissions (chmod 600)
 </api_credentials>
 
 </prerequisites>
@@ -126,6 +138,11 @@ monitoring of 50-500+ companies per run with parallel execution, progress tracki
 <airtable_integration>
 - Connect to two Airtable sheets: 'Portfolio Companies' and 'Online Presence'
 - Extract canonical company names from 'Portfolio Companies' sheet (column: company name)
+- OPTIONAL: Extract naics_code and business_description from 'Portfolio Companies' if columns exist
+  - If naics_code column exists: Store value, otherwise NULL
+  - If business_description column exists: Store value and use for news search, otherwise skip news search
+  - Set has_metadata=true if either field is present
+  - Flag companies with missing metadata but continue processing
 - Extract URLs from 'Online Presence' sheet with columns:
   - 'company_name': linked field to Portfolio Companies
   - 'Resource': type of link (23 types supported)
@@ -159,7 +176,7 @@ monitoring of 50-500+ companies per run with parallel execution, progress tracki
   </crawling>
 
   <content_storage>
-    - Store full HTML content in database
+    - Store full HTML content in database with gzip compression to prevent database bloat
     - Store cleaned Markdown content for analysis
     - Track HTTP status codes and response headers
     - Capture Last-Modified and ETag headers
@@ -167,6 +184,7 @@ monitoring of 50-500+ companies per run with parallel execution, progress tracki
     - Indefinite retention for historical comparison
     - Retain a database of historical content for search
     - Detect duplicates to avoid storing multiple copies of the same page
+    - Use content checksums (MD5) to identify duplicate content across different URLs
   </content_storage>
 
   <retry_logic>
@@ -323,14 +341,22 @@ monitoring of 50-500+ companies per run with parallel execution, progress tracki
 <news_monitoring_system>
   <news_search>
     - Use Firecrawl search API to find news articles about companies
-    - Query format: "Find articles about [Company Name] ([business description]) within the last 90 days. Prioritize articles from reputable sources. For each article identified, return the URL and the date it was published."
+    - OPTIONAL: Only run news search if company.business_description is available
+    - If business_description is MISSING:
+      - Skip news search for that company
+      - Log "News search skipped - no business description"
+      - Add note to company record: "Missing business description - news search skipped"
+      - Set has_metadata=false flag
+      - Continue with website scraping and analysis (not a blocker)
+    - If business_description is PRESENT:
+      - Query format: "Find articles about [Company Name] ([business description]) within the last 90 days. Prioritize articles from reputable sources. For each article identified, return the URL and the date it was published."
+      - Alternate query format (no description): "Find articles about [Company Name] within the last 90 days. Prioritize articles from reputable sources. For each article identified, return the URL and the date it was published."
     - Time window: Past 90 days (configurable)
-    - Requires: company.name and company.business_description (to be added)
     - Returns: article URLs and publication dates
     - Scrape returned article URLs using Firecrawl batch scraping
     - Deduplicate articles across multiple companies (same URL can mention multiple companies)
     - Extract article title, content, URL, publication date
-    - Handle company name variations through business description context
+    - Handle company name variations through business description context when available
   </news_search>
 
   <keyword_analysis>
@@ -375,9 +401,10 @@ monitoring of 50-500+ companies per run with parallel execution, progress tracki
   </keyword_matching_rules>
 
   <no_news_handling>
-    - If no news articles found, do not adjust company status
-    - Log "no news found" for historical record
-    - Continue with website-based analysis only
+    - If business_description is missing: Skip news search entirely, log it, continue processing
+    - If no news articles found (after searching): Do not adjust company status
+    - Log "no news found" or "news search skipped" for historical record
+    - Continue with website-based analysis only (website scraping is NOT affected by missing metadata)
   </no_news_handling>
 </news_monitoring_system>
 
@@ -530,13 +557,14 @@ monitoring of 50-500+ companies per run with parallel execution, progress tracki
 </output_formats>
 
 <logging_and_monitoring>
-  - Standard python logging
+  - Structured logging with structlog
   - Log levels: DEBUG, INFO, WARNING, ERROR, CRITICAL
   - Separate log files by run with timestamps
   - Contextual information (company name, URL, operation)
-  - Performance metrics (timing, API calls, success rates)
+  - Operational metrics (timing, API calls, success rates)
   - Error stack traces for debugging
   - Rotation and archival of old logs
+  - SECURITY: Never log sensitive data (API keys, tokens, credentials)
 </logging_and_monitoring>
 
 </core_features>
@@ -546,8 +574,9 @@ monitoring of 50-500+ companies per run with parallel execution, progress tracki
 - id: INTEGER PRIMARY KEY
 - name: TEXT NOT NULL UNIQUE
 - airtable_record_id: TEXT (from Portfolio Companies sheet)
-- naics_code: TEXT (industry classification code - to be added)
-- business_description: TEXT (what the company does - to be added, used for news search)
+- naics_code: TEXT NULL (industry classification code - OPTIONAL, from Airtable if available)
+- business_description: TEXT NULL (what the company does - OPTIONAL, from Airtable if available, used for news search)
+- has_metadata: BOOLEAN (true if naics_code OR business_description provided)
 - status: TEXT (operational, likely_closed, requires_review, unknown, no_urls)
 - confidence_score: REAL (0.0-1.0)
 - has_urls: BOOLEAN (false if no URLs in Airtable)
@@ -555,7 +584,7 @@ monitoring of 50-500+ companies per run with parallel execution, progress tracki
 - first_seen_at: TIMESTAMP
 - created_at: TIMESTAMP
 - updated_at: TIMESTAMP
-- notes: TEXT (e.g., "Acquired by Company X", "404 error", "No URLs available")
+- notes: TEXT (e.g., "Acquired by Company X", "404 error", "No URLs available", "Missing business description - news search skipped")
 </companies>
 
 <urls>
@@ -684,24 +713,47 @@ monitoring of 50-500+ companies per run with parallel execution, progress tracki
   - records_processed: INTEGER
 </airtable_sync>
 
+<database_indexes>
+REQUIRED INDEXES FOR QUERY PERFORMANCE:
+- companies: INDEX idx_companies_name ON companies(name)
+- companies: INDEX idx_companies_status ON companies(status)
+- companies: INDEX idx_companies_last_checked ON companies(last_checked_at)
+- companies: INDEX idx_companies_status_checked ON companies(status, last_checked_at)
+- urls: INDEX idx_urls_url ON urls(url)
+- urls: INDEX idx_urls_resource_type ON urls(resource_type)
+- urls: INDEX idx_urls_verification_status ON urls(verification_status)
+- company_urls: INDEX idx_company_urls_company_id ON company_urls(company_id)
+- company_urls: INDEX idx_company_urls_url_id ON company_urls(url_id)
+- website_snapshots: INDEX idx_snapshots_url_id ON website_snapshots(url_id)
+- website_snapshots: INDEX idx_snapshots_captured_at ON website_snapshots(captured_at)
+- website_snapshots: INDEX idx_snapshots_url_captured ON website_snapshots(url_id, captured_at)
+- news_articles: INDEX idx_news_url_id ON news_articles(url_id)
+- news_articles: INDEX idx_news_published_at ON news_articles(published_at)
+- status_determinations: INDEX idx_status_company_id ON status_determinations(company_id)
+- status_determinations: INDEX idx_status_determined_at ON status_determinations(determined_at)
+</database_indexes>
+
 </database_schema>
 
 <data_models>
 <company>
 - name: str
 - airtable_record_id: str | None
-- naics_code: str | None (industry classification - to be added)
-- business_description: str | None (what company does - to be added, used for news search)
+- naics_code: str | None (industry classification - OPTIONAL from Airtable)
+- business_description: str | None (what company does - OPTIONAL from Airtable, used for news search when available)
+- has_metadata: bool (true if naics_code OR business_description provided)
 - status: Literal["operational", "likely_closed", "requires_review", "unknown", "no_urls"]
 - confidence_score: float (range: 0.0-1.0)
 - has_urls: bool
 - last_checked_at: datetime | None
 - notes: str | None
 - urls: list[URL] (related URLs via company_urls join table)
+
+BEHAVIOR: If business_description is missing, skip news search for that company but continue with website scraping and analysis. Flag company with note indicating news search was skipped.
 </company>
 
 <url>
-  - url: HttpUrl (validated URL)
+  - url: HttpUrl (validated URL with SSRF protection - blocks private IPs, localhost, internal networks)
   - resource_type: Literal["Homepage", "Blog", "Twitter", "LinkedIn - Corporate", "LinkedIn - Person", "Crunchbase", "Bloomberg", "Bluesky", "EDGAR", "Wikipedia", "Github", "YCombinator", "Facebook", "Instagram", "Tiktok", "Reddit", "Youtube", "State Business Registry", "Google query", "Kagi query", "No/little info / Unsure", "Other"]
   - airtable_record_id: str | None
   - requires_playwright: bool (true if JS-heavy or Firecrawl fails, LinkedIn always true)
@@ -714,6 +766,8 @@ monitoring of 50-500+ companies per run with parallel execution, progress tracki
   - scraper_used: Literal["firecrawl", "playwright"] | None
   - notes: str | None
   - companies: list[Company] (related companies via company_urls join table)
+
+SECURITY NOTE: URL validation must reject private IP ranges (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 127.0.0.0/8), localhost, and link-local addresses to prevent SSRF attacks.
 </url>
 
 <company_url>
@@ -883,14 +937,14 @@ monitoring of 50-500+ companies per run with parallel execution, progress tracki
      a. Fetch or create company record in database
      b. Check if recent snapshot exists (skip if fresh and --force-refresh not set)
      c. Scrape homepage and related pages using Firecrawl
-     d. Store raw HTML and Markdown content
-     e. Search for news articles in past 2 weeks
-     f. Apply keyword detection to news content (positive/negative signals)
-     g. Compare new snapshot to historical snapshots (MD5 checksums)
+     d. Store raw HTML and Markdown content (compressed with gzip)
+     e. OPTIONAL: Search for news articles in past 90 days (only if business_description available, skip otherwise)
+     f. OPTIONAL: Apply keyword detection to news content if news search ran (positive/negative signals)
+     g. Compare new snapshot to historical snapshots (MD5 checksums on normalized text)
      h. Detect dead websites, stale content, acquisitions
      i. Calculate confidence score for status determination
      j. Update company status in database
-     k. Log processing result
+     k. Log processing result (including if news search was skipped)
   8. Aggregate results from all workers
   9. Generate CLI summary report
   10. Export to JSON/CSV if requested
@@ -911,12 +965,22 @@ monitoring of 50-500+ companies per run with parallel execution, progress tracki
 </system_architecture>
 
 <design_principles>
+<security_first>
+  - Security is non-negotiable and must be built in from the start
+  - Use parameterized queries exclusively (prevent SQL injection)
+  - Validate and sanitize all external inputs (SSRF protection)
+  - Never hardcode credentials or commit .env files
+  - Never log sensitive data (API keys, tokens, credentials)
+  - Use python-dotenv for secure environment variable management
+  - Implement principle of least privilege for all operations
+</security_first>
+
 <quality_over_speed>
 - Reliability and data accuracy prioritized
 - Proper error handling mandatory
 - Thorough testing required (90% coverage minimum)
 - Clear, maintainable code
-- Comprehensive logging with structlog
+- Comprehensive structured logging with structlog
 </quality_over_speed>
 
 <no_backward_compatibility>
@@ -968,11 +1032,14 @@ monitoring of 50-500+ companies per run with parallel execution, progress tracki
 <tasks>
 - Set up src/ layout project structure
 - Configure uv package management (pyproject.toml)
+- Add python-dotenv dependency for secure environment variable management
 - Establish core/ and infrastructure/ separation (FC/IS)
 - Configure mypy strict mode, ruff, pytest
-- Create base Pydantic models
-- Set up logging configuration (standard Python logging)
-- Initialize .gitignore with standard patterns
+- Create base Pydantic models with URL validation (SSRF protection)
+- Set up structured logging configuration (structlog)
+- Initialize .gitignore with standard patterns (.env, *.db, __pycache__, .venv, *.pyc, logs/, .pytest_cache/)
+- Create .env.example template (without actual keys)
+- SECURITY: Implement URL validation to block private IP ranges and localhost
 - Design SQLite schema with migrations:
   - companies table (with has_urls flag, status including 'no_urls')
   - urls table (with 23 resource_type values, unique URLs)
@@ -981,16 +1048,22 @@ monitoring of 50-500+ companies per run with parallel execution, progress tracki
   - news_articles (references url_id)
   - Other supporting tables
 - Implement many-to-many relationship between companies and URLs
+- Create all required database indexes for query optimization (see database_indexes section)
 - Create database initialization and migration scripts (Alembic)
 - Write database access layer with proper connection pooling
+- SECURITY: Implement database access layer using ONLY parameterized queries (prevent SQL injection)
+- SECURITY: Never use string concatenation or f-strings for SQL queries
+- SECURITY: Use SQLAlchemy's ORM or text() with bound parameters exclusively
 - Add support for 23 resource types from Airtable
+- Add HTML content compression (gzip) for snapshot storage to prevent database bloat
 </tasks>
 </step>
 
 <step number="2">
   <title>Core Domain Models</title>
   <tasks>
-    - Define Company model with has_urls flag and status including 'no_urls'
+    - Define Company model with has_urls flag, has_metadata flag, and status including 'no_urls'
+    - naics_code and business_description fields are OPTIONAL (nullable)
     - Define URL model with 23 resource_type enum values
     - Define CompanyURL join model for many-to-many relationships
     - Define WebsiteSnapshot model (linked to url_id only)
@@ -999,6 +1072,7 @@ monitoring of 50-500+ companies per run with parallel execution, progress tracki
     - Define SnapshotChange model (per URL, not per company)
     - Define ProcessingResult and BatchSummary models
     - Create custom validators for URLs, dates, confidence scores, resource types
+    - Implement SSRF protection in URL validators (block private IPs)
     - Implement resource type validation (23 supported types from Airtable)
     - Write comprehensive unit tests for all models including many-to-many scenarios
   </tasks>
@@ -1009,16 +1083,19 @@ monitoring of 50-500+ companies per run with parallel execution, progress tracki
   <tasks>
     - Implement Airtable API client with authentication
     - Fetch from 'Portfolio Companies' sheet (canonical company names)
+    - OPTIONAL: Extract naics_code and business_description if columns exist in Airtable
+    - If metadata columns missing: Set NULL, flag company (has_metadata=false), continue processing
     - Fetch from 'Online Presence' sheet (company_name, Resource, url)
     - Parse Resource field (23 types) into resource_type enum
     - Build many-to-many relationships via company_urls join table
     - Deduplicate URLs (same URL = one row in urls table, multiple companies via join)
     - Handle companies with zero URLs (create with status='no_urls', has_urls=false)
     - Implement data validation and normalization for each resource type
+    - Implement SSRF protection in URL validation (reject private IPs, localhost)
     - Handle missing or malformed URLs gracefully
     - Add retry logic for Airtable API calls
     - Read-only implementation (no writes back to Airtable)
-    - Write integration tests with mocked Airtable responses
+    - Write integration tests with mocked Airtable responses (test with/without metadata)
   </tasks>
 </step>
 
@@ -1061,6 +1138,12 @@ monitoring of 50-500+ companies per run with parallel execution, progress tracki
   <title>News Search and Keyword Analysis</title>
   <tasks>
     - Implement Firecrawl search API with query pattern using company name and business description
+    - CRITICAL: News search is OPTIONAL - only run if business_description is available
+    - If business_description is missing:
+      - Skip news search entirely for that company
+      - Log "News search skipped - no business description"
+      - Add note to company record
+      - Continue with website scraping (NOT blocked by missing metadata)
     - Create article content extraction and cleaning
     - Build keyword detection system for positive/negative signals
     - Implement comprehensive keyword lists (70+ terms including investment vocabulary)
@@ -1070,9 +1153,10 @@ monitoring of 50-500+ companies per run with parallel execution, progress tracki
       - Handle mixed signals (2+ positive AND 2+ negative)
     - Store matched keywords in database for transparency
     - Implement relevance filtering to avoid false positives
-    - Handle company name variations through business description context
+    - Handle company name variations through business description context when available
     - Create article deduplication logic (many-to-many: same article can mention multiple companies)
     - Write tests with sample news articles and keyword matching scenarios
+    - Write tests for companies with missing business_description (ensure graceful skip)
   </tasks>
 </step>
 
@@ -1197,7 +1281,8 @@ monitoring of 50-500+ companies per run with parallel execution, progress tracki
   <tasks>
     - Implement comprehensive error handlers
     - Create user-friendly error messages
-    - Set up structured logging with context
+    - Set up structured logging with structlog and context
+    - SECURITY: Implement log filtering to prevent sensitive data leakage
     - Add debug logging mode
     - Implement log rotation and archival
     - Create error categorization and reporting
@@ -1212,7 +1297,11 @@ monitoring of 50-500+ companies per run with parallel execution, progress tracki
     - Create integration test suite with real API calls (mocked)
     - Test with various company scenarios (active, closed, acquired)
     - Validate batch processing at scale (100+ companies)
-    - Performance testing and optimization
+    - SECURITY: Test SQL injection prevention (attempt malicious inputs)
+    - SECURITY: Test SSRF protection (attempt private IP URLs, localhost)
+    - SECURITY: Verify .env file is in .gitignore
+    - SECURITY: Verify no API keys in logs or error messages
+    - SECURITY: Test URL validation with malicious inputs
     - Edge case testing (malformed data, network failures)
     - User acceptance testing with sample data
   </tasks>
@@ -1273,16 +1362,6 @@ monitoring of 50-500+ companies per run with parallel execution, progress tracki
   - Comprehensive documentation
   - All configuration follows XDG standards
 </quality_and_standards>
-
-<performance>
-  - Process 100 companies in under 10 minutes (with 10 workers)
-  - Scrape typical homepage in under 5 seconds
-  - Parallel processing with 10+ concurrent workers
-  - Efficient database queries (&lt;100ms per query)
-  - Resume interrupted runs without data loss
-  - Minimal memory footprint (&lt;500MB for 100 companies)
-  - Fast startup time (&lt;2 seconds)
-</performance>
 
 <user_experience>
   - Clear and intuitive CLI commands
@@ -1346,7 +1425,9 @@ sheet_names = ["Portfolio Companies", "Investments", "Prospects"]
   [news]
   enabled = true
   search_window_days = 90  # Use Firecrawl search API
+  skip_if_no_description = true  # Skip news search if business_description missing (recommended)
   search_query_template = "Find articles about {company_name} ({business_description}) within the last {days} days. Prioritize articles from reputable sources. For each article identified, return the URL and the date it was published."
+  search_query_template_no_description = "Find articles about {company_name} within the last {days} days. Prioritize articles from reputable sources. For each article identified, return the URL and the date it was published."
   max_articles_per_company = 10
   min_relevance_score = 0.6
 
@@ -1462,8 +1543,10 @@ RESOLVED:
 RESOLVED:
   - MUST use start_batch_scrape endpoint (NOT batch_scrape) for scraping
   - Use search API for finding news articles with query: "Find articles about [Company Name] ([business description]) within the last 90 days. Prioritize reputable sources. Return URL and date."
+  - News search is OPTIONAL: Only run if business_description is available, skip otherwise
   - Batch size: exactly 20 companies at a time (strict requirement)
-  - Add naics_code and business_description fields to companies table (to be implemented)
+  - naics_code and business_description fields are OPTIONAL in companies table
+  - If missing from Airtable: Set NULL, flag company, skip news search, continue with website scraping
   - URLs table has requires_playwright flag for JavaScript-heavy sites
   - LinkedIn always requires Playwright (hard requirement)
   - Try Firecrawl first for other sites, flag for Playwright on failure (adaptive learning)
@@ -1532,7 +1615,9 @@ Currently in specification phase. No implementation started. Ready to begin deve
   - MUST support 23 resource types from Airtable
   - CRITICAL: MUST use start_batch_scrape endpoint (NOT batch_scrape) for Firecrawl
   - MUST process exactly 20 companies per batch (strict Firecrawl requirement)
-  - MUST use Firecrawl search API for news discovery with company name and business description
+  - MUST use Firecrawl search API for news discovery when business_description available (skip if missing)
+  - MUST handle missing naics_code and business_description gracefully (flag but continue processing)
+  - News search is OPTIONAL: Only run if business_description provided, skip otherwise without blocking
   - CRITICAL: MUST use Playwright for ALL LinkedIn scraping (Corporate and Person) - Firecrawl cannot access LinkedIn
   - MUST use Firecrawl for most other resources (Homepage, Blog, Twitter, etc.)
   - MUST implement adaptive scraper selection: try Firecrawl first, flag for Playwright on failure
@@ -1551,6 +1636,14 @@ Currently in specification phase. No implementation started. Ready to begin deve
   - MUST maintain historical snapshots indefinitely for all URLs
   - MUST follow XDG standards and src/ layout
   - 90% minimum test coverage required
+  - SECURITY: MUST use parameterized queries for ALL database operations (prevent SQL injection)
+  - SECURITY: MUST implement SSRF protection (block private IP ranges, localhost, internal networks)
+  - SECURITY: MUST use python-dotenv for secure API key management
+  - SECURITY: MUST never log sensitive data (API keys, credentials, tokens)
+  - SECURITY: MUST include .env in .gitignore to prevent credential leaks
+  - SECURITY: MUST validate and sanitize all external data (URLs, Airtable data, API responses)
+  - MUST create all required database indexes for query optimization
+  - MUST compress HTML content (gzip) before storing in database
 </critical_requirements>
 
 <design_decisions>
@@ -1586,12 +1679,16 @@ Currently in specification phase. No implementation started. Ready to begin deve
 </development_approach>
 
 <technical_debt_to_avoid>
-  - Avoid storing uncompressed HTML (can be large)
-  - Don't ignore rate limits (will get blocked)
-  - Don't skip validation on external data (Airtable, Firecrawl)
-  - Don't hardcode thresholds (make configurable)
-  - Don't use string concatenation for database queries (SQL injection)
-  - Don't ignore connection pooling (performance impact)
+  - SECURITY: Never use string concatenation for SQL queries - ALWAYS use parameterized queries
+  - SECURITY: Never commit .env files or hardcode API keys in source code
+  - SECURITY: Always validate and sanitize URLs before scraping (block private IPs)
+  - SECURITY: Never log sensitive data (API keys, credentials, tokens)
+  - Avoid storing uncompressed HTML (use gzip compression)
+  - Don't ignore rate limits (will get blocked by APIs)
+  - Don't skip validation on external data (Airtable, Firecrawl responses)
+  - Don't hardcode thresholds (make configurable via config file)
+  - Don't ignore connection pooling (needed for concurrent database access)
+  - Don't skip database indexes (critical for query speed)
 </technical_debt_to_avoid>
 
 </notes>
