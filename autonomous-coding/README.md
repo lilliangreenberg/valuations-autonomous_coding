@@ -202,7 +202,7 @@ The application will typically be available at `http://localhost:3000` or simila
 
 | Option | Description | Default |
 |--------|-------------|---------|
-| `--project-dir` | Directory for the project | `./autonomous_demo_project` |
+| `--project-dir` | Directory for the project | `./valuation_tool_project` |
 | `--max-iterations` | Max agent iterations | Unlimited |
 | `--model` | Claude model to use | `claude-sonnet-4-5-20250929` |
 
@@ -258,7 +258,7 @@ Edit `docker-compose.yml` to:
 Generated projects are stored in the `./generations` directory, which is mounted as a volume. You can access and run them directly from your host machine:
 
 ```bash
-cd generations/autonomous_demo_project
+cd generations/valuation_tool_project
 ./init.sh  # Run the setup script created by the agent
 ```
 

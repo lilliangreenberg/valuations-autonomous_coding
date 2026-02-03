@@ -21,7 +21,7 @@ services:
       - ./prompts:/app/prompts:ro
     command: >
       python autonomous_agent_demo.py
-      --project-dir /app/generations/autonomous_demo_project
+      --project-dir /app/generations/valuation_tool_project
       --model claude-sonnet-4-5-20250929
     stdin_open: true
     tty: true

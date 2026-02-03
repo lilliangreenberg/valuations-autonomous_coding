@@ -51,8 +51,8 @@ Environment Variables:
     parser.add_argument(
         "--project-dir",
         type=Path,
-        default=Path("./autonomous_demo_project"),
-        help="Directory for the project (default: generations/autonomous_demo_project). Relative paths automatically placed in generations/ directory.",
+        default=Path("./valuation_tool_project"),
+        help="Directory for the project (default: generations/valuation_tool_project). Relative paths automatically placed in generations/ directory.",
     )
 
     parser.add_argument(
