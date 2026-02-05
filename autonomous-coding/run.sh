@@ -38,7 +38,7 @@ usage() {
     echo "  logs          Show container logs"
     echo ""
     echo "Options (for run/test commands):"
-    echo "  --project-dir NAME    Custom project directory name (default: autonomous_demo_project)"
+    echo "  --project-dir NAME    Custom project directory name (default: valuation_tool_project)"
     echo "  --max-iterations N    Limit iterations (test uses 3 by default)"
     echo ""
     echo "Examples:"
@@ -53,7 +53,7 @@ COMMAND=${1:-run}
 shift || true
 
 # Default values
-PROJECT_DIR="autonomous_demo_project"
+PROJECT_DIR="valuation_tool_project"
 MAX_ITERATIONS=""
 
 # Parse options

@@ -1,4 +1,21 @@
+[project]
+name = "valuations-cli-tool"
+version = "0.1.0"
+description = "Autonomous valuations CLI tool"
+requires-python = ">=3.13"
+dependencies = []
+
 [tool.pyright]
 venvPath = "computer-use-demo"
 venv = ".venv"
 useLibraryCodeForTypes = false
+
+[tool.uv.workspace]
+members = [
+    "autonomous-coding",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.2",
+]
